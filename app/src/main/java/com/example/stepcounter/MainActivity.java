@@ -1,5 +1,6 @@
 package com.example.stepcounter;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.hardware.Sensor;
@@ -7,12 +8,19 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.HashMap;
 
 import static java.math.BigDecimal.*;
+
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
@@ -23,8 +31,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     int counter = 0;                // step counter
 
     TextView tvx, tvy, tvz, tvMag, tvSteps;
+    Button button;
     private SensorManager mSensorManager;
     private Sensor mSensor;
+
+    FirebaseFirestore firebaseFirestore;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,10 +47,38 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         tvz = findViewById(R.id.tvZ);
         tvMag = findViewById(R.id.tvMag);
         tvSteps = findViewById(R.id.tvSteps);
-
+        button = findViewById(R.id.button);
         // we are going to use the sensor service
+
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        
+        button.setOnClickListener(v->{
+            updateData();
+        });
+
+    }
+
+    private void updateData() {
+        long timeStamp = System.currentTimeMillis();
+        HashMap<String,Object> map = new HashMap<>();
+        map.put("timestamp",timeStamp);
+        map.put("steps",counter);
+        map.put("distance",counter*0.0005);
+        map.put("calories",counter*0.04);
+        firebaseFirestore = FirebaseFirestore.getInstance();
+        firebaseFirestore.collection("Data").document(timeStamp+"").set(map)
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void unused) {
+                        Toast.makeText(MainActivity.this, "Uploaded Successfully", Toast.LENGTH_SHORT).show();
+                    }
+                }).addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(MainActivity.this, "Failed to upload given data.", Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
 
@@ -69,8 +108,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         float y = event.values[1];
         float z = event.values[2];
 
-        tvx.setText(String.valueOf(x));
-        tvy.setText(String.valueOf(y));
+
+        /*tvy.setText(String.valueOf(x*0.04));*/
         tvz.setText(String.valueOf(z));
 
         // get a magnitude number using Pythagorus's Theorem
@@ -85,6 +124,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if ((mag < LO_STEP) && (highLimit == true)) {
             // we have a step
             counter++;
+            tvx.setText(String.valueOf(counter*0.04));
+            tvy.setText(String.valueOf(counter*0.0005)+" miles");
             tvSteps.setText(String.valueOf(counter));
             highLimit = false;
         }
