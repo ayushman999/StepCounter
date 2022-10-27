@@ -1,2 +1,4 @@
 # StepCounter
-A step counter app for Android built using JAVA. 
+A step counter app for Android built using JAVA.
+
+
