@@ -66,6 +66,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         map.put("steps",counter);
         map.put("distance",counter*0.0005);
         map.put("calories",counter*0.04);
+        map.put("heart_rate",80);
         firebaseFirestore = FirebaseFirestore.getInstance();
         firebaseFirestore.collection("Data").document(timeStamp+"").set(map)
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
